@@ -1,6 +1,6 @@
 #pragma once
 #include <inttypes.h>
-#include <stddef.h> 
+#include <stddef.h>
 #include <stdio.h>
 
 #include <errno.h>
@@ -25,7 +25,7 @@ struct node_t {
 
 typedef struct node_t node_t;
 
-typedef struct { 
+typedef struct {
 	node_t *head;
 	node_t *tail;
 	unsigned int data_size;
@@ -33,16 +33,16 @@ typedef struct {
 } list_t;
 
 typedef struct {
-	uint64_t start_address; 
-	size_t size; 
-	list_t* miniblock_list;
+	uint64_t start_address;
+	size_t size;
+	list_t *miniblock_list;
 } block_t;
 
 typedef struct {
 	uint64_t start_address;
 	size_t size;
 	uint8_t perm;
-	void* rw_buffer;
+	void *rw_buffer;
 } miniblock_t;
 
 typedef struct {
@@ -50,13 +50,14 @@ typedef struct {
 	list_t *block_list;
 } arena_t;
 
-arena_t* alloc_arena(const uint64_t size);
-void dealloc_arena(arena_t* arena);
+arena_t *alloc_arena(const uint64_t size);
+void dealloc_arena(arena_t *arena);
 
-void alloc_block(arena_t* arena, const uint64_t address, const uint64_t size);
-void free_block(arena_t* arena, const uint64_t address);
+void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size);
+void free_block(arena_t *arena, const uint64_t address);
 
-void read(arena_t* arena, uint64_t address, uint64_t size);
-void write(arena_t* arena, const uint64_t address,  const uint64_t size, const int8_t *data);
-void pmap(const arena_t* arena);
-void mprotect(arena_t* arena, uint64_t address, int8_t *permission);
+void read(arena_t *arena, uint64_t address, uint64_t size);
+void write(arena_t *arena, const uint64_t address,  const uint64_t size,
+		   const int8_t *data);
+void pmap(const arena_t *arena);
+void mprotect(arena_t *arena, uint64_t address, int8_t *permission);

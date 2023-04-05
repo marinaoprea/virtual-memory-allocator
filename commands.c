@@ -72,9 +72,6 @@ void command_write(arena_t *arena, char *line)
 		free(command);
 		return;
 	}
-	// if (address == 8078) {
-	// 	printf("bla");
-	// }
 
 	char *p = strchr(line, ' ') + 1;
 	while (!(*p >= '0' && *p <= '9'))
@@ -88,10 +85,7 @@ void command_write(arena_t *arena, char *line)
 	p++; // pentru spatiu
 
 	char *new_data = calloc(COMMAND_SIZE, sizeof(char));
-	DIE(new_data == NULL, "calloc failed()\n");
-	// if (address == 13387) {
-	// 	printf("bla");
-	// }
+	DIE(!new_data, "calloc failed()\n");
 
 	size_t read = 0;
 	while (*p != '\n') {
@@ -116,10 +110,6 @@ void command_write(arena_t *arena, char *line)
 			i++;
 		}
 	}
-	
-	// if (address == 13387) {
-	// 	printf("bla");
-	// }
 
 	if (read < size) {
 		while (read < size) {
@@ -129,10 +119,10 @@ void command_write(arena_t *arena, char *line)
 			read++;
 		}
 	}
-	
+
 	new_data = realloc(new_data, read * sizeof(signed char));
 
- 	write(arena, address, size, (signed char *) new_data);
+	write(arena, address, size, (signed char *)new_data);
 
 	free(command);
 	free(new_data);

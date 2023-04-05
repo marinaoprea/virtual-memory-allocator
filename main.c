@@ -53,7 +53,7 @@ int main(void)
 			dealloc_arena(arena);
 			break;
 		}
-		
+
 		while (strchr(line, ' ')) {
 			printf("Invalid command. Please try again.\n");
 			char *p = strchr(line, ' ');

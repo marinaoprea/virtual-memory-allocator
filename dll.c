@@ -23,8 +23,8 @@ node_t  *dll_get_nth_node(list_t *list, unsigned int n)
 
 	node_t *curr = list->head;
 	while (n) {
-	   curr = curr->next;
-	   n--;
+		curr = curr->next;
+		n--;
 	}
 	return curr;
 }

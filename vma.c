@@ -4,6 +4,7 @@
 
 #include "vma.h"
 #include "dll.h"
+#include "auxiliars.h"
 
 #define RW 6
 
@@ -45,30 +46,15 @@ void dealloc_arena(arena_t *arena)
 	free(arena);
 }
 
-int intersection(uint64_t x1, uint64_t y1, uint64_t x2, uint64_t y2)
-{
-	if (x1 >= x2 && x1 <= y2)
-		return 1;
-	if (y1 >= x2 && y1 <= y2)
-		return 1;
-	if (x2 >= x1 && x2 <= y1)
-		return 1;
-	if (y2 >= x1 && y2 <= y1)
-		return 1;
-	return 0;
-}
-
 void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size)
 {
 	node_t *curr = arena->block_list->head;
-	long index = 0;
-	long last_index = -1;
+	long index = 0, last_index = -1;
 
 	if (address >= arena->arena_size) {
 		printf("The allocated address is outside the size of arena\n");
 		return;
 	}
-
 	if (address + size - 1 >= arena->arena_size) {
 		printf("The end address is past the size of the arena\n");
 		return;
@@ -85,16 +71,8 @@ void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size)
 			printf("This zone was already allocated.\n");
 			return;
 		}
-
 		if (y1 + 1 == x2) {
-			miniblock_t *mini = calloc(1, sizeof(miniblock_t));
-			// die
-
-			mini->start_address = address;
-			mini->size = size;
-			mini->perm = 6;
-			mini->rw_buffer = NULL;
-
+			miniblock_t *mini = create_miniblock(size, address);
 			dll_add_nth_node(block->miniblock_list,
 							 block->miniblock_list->size, mini);
 			block->size += mini->size;
@@ -107,7 +85,6 @@ void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size)
 
 			block_t *next_block = (block_t *)next->info;
 			uint64_t x3 = next_block->start_address;
-			//uint64_t y3 = x3 + next_block->size - 1;
 			if (x3 == y2 + 1) {
 				block->miniblock_list->tail->next =
 				 next_block->miniblock_list->head;
@@ -124,27 +101,17 @@ void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size)
 				free(mini);
 				return;
 			}
-
 			free(mini);
 			return;
 		}
-
 		if (y2 + 1 == x1) {
-			miniblock_t *mini = calloc(1, sizeof(miniblock_t));
-			// die
-
-			mini->start_address = address;
-			mini->size = size;
-			mini->perm = RW;
-			mini->rw_buffer = NULL;
-
+			miniblock_t *mini = create_miniblock(size, address);
 			dll_add_nth_node(block->miniblock_list, 0, mini);
 			block->size += mini->size;
 			block->start_address = mini->start_address;
 			free(mini);
 			return;
 		}
-
 		if (y1 < x2)
 			last_index = index;
 
@@ -152,43 +119,16 @@ void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size)
 		index++;
 	}
 
-	//blockul nu este adiacent
-	miniblock_t *mini = calloc(1, sizeof(miniblock_t));
-	DIE(!mini, "calloc failed()\n");
-
-	mini->start_address = address;
-	mini->size = size;
-	mini->perm = RW;
-	mini->rw_buffer = NULL;
-
-	block_t *block = calloc(1, sizeof(block_t));
-	// die
-	block->miniblock_list = dll_create(sizeof(miniblock_t));
+	miniblock_t *mini = create_miniblock(size, address); // neadiacent
+	block_t *block = create_block(size, address);
 	dll_add_nth_node(block->miniblock_list, 0, mini);
-	block->size = size;
-	block->start_address = address;
 	dll_add_nth_node(arena->block_list, last_index + 1, block);
 	free(mini);
-	block->miniblock_list = NULL;
 	free(block);
-}
-
-size_t count_miniblock_bytes(node_t *curr)
-{
-	size_t ans = 0;
-	while (curr) {
-		miniblock_t *miniblock = (miniblock_t *)curr->info;
-		ans += miniblock->size;
-		curr = curr->next;
-	}
-
-	return ans;
 }
 
 void free_block(arena_t *arena, const uint64_t address)
 {
-	int found = 0;
-
 	node_t *curr = arena->block_list->head;
 	node_t *curr2 = NULL;
 	block_t *block = NULL;
@@ -197,27 +137,8 @@ void free_block(arena_t *arena, const uint64_t address)
 	int index = 0;
 	int index2 = 0;
 
-	while (curr) {
-		block = (block_t *)curr->info;
-
-		curr2 = block->miniblock_list->head;
-		index2 = 0;
-		while (curr2) {
-			miniblock = (miniblock_t *)curr2->info;
-			if (miniblock->start_address == address) {
-				found = 1;
-				break;
-			}
-			index2++;
-			curr2 = curr2->next;
-		}
-
-		if (found)
-			break;
-		index++;
-		curr = curr->next;
-	}
-
+	int found = get_address(&curr, &block, &curr2, &miniblock,
+							&index, &index2, address);
 	if (!found) {
 		printf("Invalid address for free.\n");
 		return;
@@ -287,11 +208,6 @@ void free_block(arena_t *arena, const uint64_t address)
 	free(curr2);
 }
 
-size_t minim(size_t a, size_t b)
-{
-	return (a < b ? a : b);
-}
-
 size_t get_size(node_t *curr, uint64_t address)
 {
 	size_t ans = 0;
@@ -305,21 +221,7 @@ size_t get_size(node_t *curr, uint64_t address)
 	return ans;
 }
 
-size_t check_write_permissions(block_t *block, uint8_t perm)
-{
-	node_t *curr = block->miniblock_list->head;
-	size_t ans = 0;
-	while (curr) {
-		miniblock_t *miniblock = (miniblock_t *)curr->info;
-		if (!(miniblock->perm & perm))
-			break;
-		ans += miniblock->size;
-		curr = curr->next;
-	}
-	return ans;
-}
-
-int check_read_permissions(node_t *curr, uint8_t perm, size_t size)
+int check_permissions(node_t *curr, uint8_t perm, size_t size)
 {
 	size_t checked = 0;
 	while (curr) {
@@ -332,38 +234,6 @@ int check_read_permissions(node_t *curr, uint8_t perm, size_t size)
 		curr = curr->next;
 	}
 	return 1;
-}
-
-int check_address_rw(arena_t *arena, node_t **curr, block_t **block,
-					 node_t **curr2, miniblock_t **miniblock, uint64_t address)
-{
-	int found = 0;
-	*curr = arena->block_list->head;
-	while (*curr) {
-		*block = (block_t *)(*curr)->info;
-
-		if ((*block)->start_address <= address &&
-			(*block)->start_address + (*block)->size - 1 >= address) {
-			found = 1;
-			break;
-		}
-		(*curr) = (*curr)->next;
-	}
-	if (!found)
-		return 0;
-	*curr2  = (*block)->miniblock_list->head;
-	while (*curr2) {
-		*miniblock = (miniblock_t *)(*curr2)->info;
-
-		if ((*miniblock)->start_address <= address &&
-		    (*miniblock)->start_address + (*miniblock)->size - 1 >= address) {
-				found = 1;
-				break;
-			}
-
-		(*curr2) = (*curr2)->next;
-	}
-	return found;
 }
 
 void read(arena_t *arena, uint64_t address, uint64_t size)
@@ -380,7 +250,7 @@ void read(arena_t *arena, uint64_t address, uint64_t size)
 		return;
 	}
 
-	if (!check_read_permissions(curr2, 4, size)) {
+	if (!check_permissions(curr2, 4, size)) {
 		printf("Invalid permissions for read.\n");
 		return;
 	}
@@ -451,8 +321,8 @@ void write(arena_t *arena, const uint64_t address, const uint64_t size,
 		printf("Invalid address for write.\n");
 		return;
 	}
-	
-	if (!check_read_permissions(curr2, 2, size)) {
+
+	if (!check_permissions(curr2, 2, size)) {
 		printf("Invalid permissions for write.\n");
 		return;
 	}
@@ -495,40 +365,6 @@ void write(arena_t *arena, const uint64_t address, const uint64_t size,
 
 		curr2 = curr2->next;
 	}
-}
-
-uint64_t arena_used_size(const arena_t *arena)
-{
-	uint64_t ans = 0;
-	node_t *curr = arena->block_list->head;
-	while (curr) {
-		block_t *block = (block_t *)curr->info;
-		ans += block->size;
-		curr = curr->next;
-	}
-
-	return ans;
-}
-
-int count_miniblocks(const arena_t *arena)
-{
-	int ans = 0;
-
-	node_t *curr = arena->block_list->head;
-	while (curr) {
-		block_t *block = (block_t *)curr->info;
-		ans += block->miniblock_list->size;
-		curr = curr->next;
-	}
-
-	return ans;
-}
-
-void print_permissions(uint8_t perm)
-{
-	(perm & 4) ? printf("R") : printf("-");
-	(perm & 2) ? printf("W") : printf("-");
-	(perm & 1) ? printf("X") : printf("-");
 }
 
 void pmap(const arena_t *arena)

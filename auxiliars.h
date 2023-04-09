@@ -3,6 +3,8 @@
 
 #include "vma.h"
 
+// header contains auxiliar functions used in command solving
+
 int intersection(uint64_t x1, uint64_t y1, uint64_t x2, uint64_t y2);
 
 miniblock_t *create_miniblock(size_t size, size_t address);
@@ -24,5 +26,9 @@ uint64_t arena_used_size(const arena_t *arena);
 int count_miniblocks(const arena_t *arena);
 
 void print_permissions(uint8_t perm);
+
+size_t get_size(node_t *curr, uint64_t address);
+
+int check_permissions(node_t *curr, uint8_t perm, size_t size);
 
 #endif

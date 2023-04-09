@@ -6,7 +6,7 @@
 list_t *dll_create(unsigned int data_size)
 {
 	list_t *list = calloc(1, sizeof(list_t));
-	// Die
+	DIE(!list, "calloc failed()\n");
 
 	list->data_size = data_size;
 	list->size = 0;
@@ -14,7 +14,7 @@ list_t *dll_create(unsigned int data_size)
 	return list;
 }
 
-node_t  *dll_get_nth_node(list_t *list, unsigned int n)
+node_t *dll_get_nth_node(list_t *list, unsigned int n)
 {
 	if (!list || !list->size || !list->head)
 		return NULL;

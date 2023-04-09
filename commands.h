@@ -3,6 +3,9 @@
 
 #include "vma.h"
 
+// header implements input interpretation and function call
+// for solving given commands
+
 arena_t *command_alloc_arena(char *line);
 
 void command_alloc_block(arena_t *arena, char *line);

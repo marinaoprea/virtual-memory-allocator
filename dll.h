@@ -3,6 +3,8 @@
 
 #include "vma.h"
 
+// header implements doubly linked list operations
+
 list_t *dll_create(unsigned int data_size);
 
 node_t *dll_get_nth_node(list_t *list, unsigned int n);

@@ -2,8 +2,10 @@
 #include <inttypes.h>
 #include <stddef.h>
 #include <stdio.h>
-
 #include <errno.h>
+
+// header contains definitions of used data structures
+// header contains solving functions for given commands
 
 #define DIE(assertion, call_description)				\
 	do {								\
@@ -14,8 +16,6 @@
 			exit(errno);				        \
 		}							\
 	} while (0)
-
-/* TODO : add your implementation for doubly-linked list */
 
 struct node_t {
 	struct node_t *prev;

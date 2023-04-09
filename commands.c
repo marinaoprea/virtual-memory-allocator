@@ -9,7 +9,7 @@
 arena_t *command_alloc_arena(char *line)
 {
 	char *command = calloc(COMMAND_SIZE, sizeof(char));
-	// die
+	DIE(!command, "calloc failed()\n");
 
 	uint64_t size;
 	int rc = sscanf(line, "%s %lu", command, &size);
@@ -27,7 +27,7 @@ arena_t *command_alloc_arena(char *line)
 void command_alloc_block(arena_t *arena, char *line)
 {
 	char *command = calloc(COMMAND_SIZE, sizeof(char));
-	// die
+	DIE(!command, "calloc failed()\n");
 
 	uint64_t address, size;
 	int rc = sscanf(line, "%s %lu %lu", command, &address, &size);
@@ -44,7 +44,7 @@ void command_alloc_block(arena_t *arena, char *line)
 void command_free_block(arena_t *arena, char *line)
 {
 	char *command = calloc(COMMAND_SIZE, sizeof(char));
-	// die
+	DIE(!command, "calloc failed()\n");
 
 	uint64_t address;
 	int rc = sscanf(line, "%s %lu", command, &address);
@@ -61,7 +61,7 @@ void command_free_block(arena_t *arena, char *line)
 void command_write(arena_t *arena, char *line)
 {
 	char *command = calloc(COMMAND_SIZE, sizeof(char));
-	// die
+	DIE(!command, "calloc failed()\n");
 
 	size_t size;
 	uint64_t address;
@@ -82,7 +82,7 @@ void command_write(arena_t *arena, char *line)
 		p++;
 	while (*p >= '0' && *p <= '9')
 		p++;
-	p++; // pentru spatiu
+	p++; // for ' '
 
 	char *new_data = calloc(COMMAND_SIZE, sizeof(char));
 	DIE(!new_data, "calloc failed()\n");
@@ -132,7 +132,7 @@ void command_write(arena_t *arena, char *line)
 void command_read(arena_t *arena, char *line)
 {
 	char *command = calloc(COMMAND_SIZE, sizeof(char));
-	// die
+	DIE(!command, "calloc failed()\n");
 
 	uint64_t address;
 	size_t size;
@@ -150,7 +150,7 @@ void command_read(arena_t *arena, char *line)
 void command_protect(arena_t *arena, char *line)
 {
 	char *command = calloc(COMMAND_SIZE, sizeof(char));
-	// die
+	DIE(!command, "calloc failed()\n");
 
 	uint64_t address;
 	int rc = sscanf(line, "%s %lu", command, &address);

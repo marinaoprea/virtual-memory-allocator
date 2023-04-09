@@ -4,6 +4,8 @@
 #include "vma.h"
 #include "dll.h"
 
+// function returns 1 wether [x1, y1] intersects [x2, y2] segment and
+// 0 otherwise; segments considered on real numbers positive semiaxis
 int intersection(uint64_t x1, uint64_t y1, uint64_t x2, uint64_t y2)
 {
 	if (x1 >= x2 && x1 <= y2)
@@ -17,6 +19,8 @@ int intersection(uint64_t x1, uint64_t y1, uint64_t x2, uint64_t y2)
 	return 0;
 }
 
+// function allocates memory for a new miniblock, initializes its fields
+// to default values and returns pointer to the structure
 miniblock_t *create_miniblock(size_t size, size_t address)
 {
 	miniblock_t *mini = calloc(1, sizeof(miniblock_t));
@@ -30,6 +34,8 @@ miniblock_t *create_miniblock(size_t size, size_t address)
 	return mini;
 }
 
+// function allocates memory for a new block, initializes its fields
+// to default values and returns pointer to the structure
 block_t *create_block(size_t size, size_t address)
 {
 	block_t *block = calloc(1, sizeof(block_t));
@@ -41,6 +47,8 @@ block_t *create_block(size_t size, size_t address)
 	return block;
 }
 
+// function counts bytes ocuppied by a block's miniblocks starting with
+// given node
 size_t count_miniblock_bytes(node_t *curr)
 {
 	size_t ans = 0;
@@ -53,6 +61,10 @@ size_t count_miniblock_bytes(node_t *curr)
 	return ans;
 }
 
+// function returns 1 wether there is a miniblock that starts at given
+// address
+// function updates curr, block, curr2, miniblock to searched structures
+// thus parameters are given by double pointer
 int get_address(node_t **curr, block_t **block, node_t **curr2,
 				miniblock_t **miniblock, int *index, int *index2,
 				size_t address)
@@ -82,11 +94,14 @@ int get_address(node_t **curr, block_t **block, node_t **curr2,
 	return found;
 }
 
+// function returns min(a, b)
 size_t minim(size_t a, size_t b)
 {
 	return (a < b ? a : b);
 }
 
+// function checks address for read/write operations
+// function updates curr, block, curr2, miniblock to searched structures
 int check_address_rw(arena_t *arena, node_t **curr, block_t **block,
 					 node_t **curr2, miniblock_t **miniblock, uint64_t address)
 {
@@ -118,6 +133,7 @@ int check_address_rw(arena_t *arena, node_t **curr, block_t **block,
 	return found;
 }
 
+// function counts total memory bytes virtually occupied by arena
 uint64_t arena_used_size(const arena_t *arena)
 {
 	uint64_t ans = 0;
@@ -131,6 +147,7 @@ uint64_t arena_used_size(const arena_t *arena)
 	return ans;
 }
 
+// function counts total number of miniblocks of arena
 int count_miniblocks(const arena_t *arena)
 {
 	int ans = 0;
@@ -145,9 +162,40 @@ int count_miniblocks(const arena_t *arena)
 	return ans;
 }
 
+// funciton prints permissions for given octal form
 void print_permissions(uint8_t perm)
 {
 	(perm & 4) ? printf("R") : printf("-");
 	(perm & 2) ? printf("W") : printf("-");
 	(perm & 1) ? printf("X") : printf("-");
+}
+
+// function counts bytes occupied from given node to end of block
+size_t get_size(node_t *curr, uint64_t address)
+{
+	size_t ans = 0;
+	miniblock_t *tmp = (miniblock_t *)curr->info;
+	while (curr) {
+		miniblock_t *miniblock = (miniblock_t *)curr->info;
+		ans += miniblock->size;
+		curr = curr->next;
+	}
+	ans = ans - (address - tmp->start_address);
+	return ans;
+}
+
+// function checks permissions for read/write operations
+int check_permissions(node_t *curr, uint8_t perm, size_t size)
+{
+	size_t checked = 0;
+	while (curr) {
+		miniblock_t *miniblock = (miniblock_t *)curr->info;
+		if (!(miniblock->perm & perm))
+			return 0;
+		checked += miniblock->size;
+		if (checked >= size)
+			return 1;
+		curr = curr->next;
+	}
+	return 1;
 }

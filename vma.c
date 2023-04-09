@@ -8,6 +8,8 @@
 
 #define RW 6
 
+// function allocates arena type element, initializes its fields and
+// returns pointer to its address
 arena_t *alloc_arena(const uint64_t size)
 {
 	arena_t *arena = calloc(1, sizeof(arena_t));
@@ -20,6 +22,9 @@ arena_t *alloc_arena(const uint64_t size)
 	return arena;
 }
 
+// function frees all memory occupied by arena
+// rw_buffer is allocated only if it is used by WRITE operation
+// thus it's deallocated only if nonzero
 void dealloc_arena(arena_t *arena)
 {
 	node_t *curr = arena->block_list->head;
@@ -46,6 +51,11 @@ void dealloc_arena(arena_t *arena)
 	free(arena);
 }
 
+// function  simulates allocation of a new miniblock and incorporates it in
+// corresponding block
+// last_index represents the index of the last block situated on the left side
+// of the new block in case of disjunction; thus new block is inserted on
+// last_index + 1 position
 void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size)
 {
 	node_t *curr = arena->block_list->head;
@@ -127,6 +137,7 @@ void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size)
 	free(block);
 }
 
+// function simulates free of miniblock and eventually split of containing block
 void free_block(arena_t *arena, const uint64_t address)
 {
 	node_t *curr = arena->block_list->head;
@@ -208,34 +219,7 @@ void free_block(arena_t *arena, const uint64_t address)
 	free(curr2);
 }
 
-size_t get_size(node_t *curr, uint64_t address)
-{
-	size_t ans = 0;
-	miniblock_t *tmp = (miniblock_t *)curr->info;
-	while (curr) {
-		miniblock_t *miniblock = (miniblock_t *)curr->info;
-		ans += miniblock->size;
-		curr = curr->next;
-	}
-	ans = ans - (address - tmp->start_address);
-	return ans;
-}
-
-int check_permissions(node_t *curr, uint8_t perm, size_t size)
-{
-	size_t checked = 0;
-	while (curr) {
-		miniblock_t *miniblock = (miniblock_t *)curr->info;
-		if (!(miniblock->perm & perm))
-			return 0;
-		checked += miniblock->size;
-		if (checked >= size)
-			return 1;
-		curr = curr->next;
-	}
-	return 1;
-}
-
+// function reads from given address if permissions don't guard
 void read(arena_t *arena, uint64_t address, uint64_t size)
 {
 	node_t *curr = NULL;
@@ -308,6 +292,8 @@ void read(arena_t *arena, uint64_t address, uint64_t size)
 	printf("\n");
 }
 
+// function writes to given address
+// rw_buffer is updated by deep copy
 void write(arena_t *arena, const uint64_t address, const uint64_t size,
 		   const int8_t *data)
 {
@@ -367,6 +353,7 @@ void write(arena_t *arena, const uint64_t address, const uint64_t size,
 	}
 }
 
+// function maps the arena
 void pmap(const arena_t *arena)
 {
 	printf("Total memory: 0x%lX bytes\n", arena->arena_size);
@@ -411,6 +398,7 @@ void pmap(const arena_t *arena)
 	}
 }
 
+// function updates permissions
 void mprotect(arena_t *arena, uint64_t address, int8_t *permission)
 {
 	if (address >= arena->arena_size) {

@@ -1,3 +1,4 @@
+// Copyright Marina Oprea 313CA 2022 - 2023
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -23,8 +24,6 @@ arena_t *alloc_arena(const uint64_t size)
 }
 
 // function frees all memory occupied by arena
-// rw_buffer is allocated only if it is used by WRITE operation
-// thus it's deallocated only if nonzero
 void dealloc_arena(arena_t *arena)
 {
 	node_t *curr = arena->block_list->head;
@@ -33,8 +32,7 @@ void dealloc_arena(arena_t *arena)
 		node_t *curr2 = block->miniblock_list->head;
 		while (curr2) {
 			miniblock_t *miniblock = (miniblock_t *)curr2->info;
-			if (miniblock->rw_buffer)
-				free(miniblock->rw_buffer);
+			free(miniblock->rw_buffer);
 			free(miniblock);
 			node_t *aux2 = (node_t *)curr2->next;
 			free(curr2);
@@ -60,7 +58,6 @@ void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size)
 {
 	node_t *curr = arena->block_list->head;
 	long index = 0, last_index = -1;
-
 	if (address >= arena->arena_size) {
 		printf("The allocated address is outside the size of arena\n");
 		return;
@@ -69,30 +66,36 @@ void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size)
 		printf("The end address is past the size of the arena\n");
 		return;
 	}
-
 	while (curr) {
 		block_t *block = (block_t *)curr->info;
 		uint64_t x1 = block->start_address;
 		uint64_t y1 = x1 + block->size - 1;
 		uint64_t x2 = address;
 		uint64_t y2 = x2 + size - 1;
-
 		if (intersection(x1, y1, x2, y2)) {
 			printf("This zone was already allocated.\n");
 			return;
+		}
+		node_t *tmp = curr->next;
+		if (tmp) {
+			block_t *block_tmp = (block_t *)tmp->info;
+			uint64_t x3 = block_tmp->start_address;
+			uint64_t y3 = x3 + block_tmp->size - 1;
+			if (intersection(x2, y2, x3, y3)) {
+				printf("This zone was already allocated.\n");
+				return;
+			}
 		}
 		if (y1 + 1 == x2) {
 			miniblock_t *mini = create_miniblock(size, address);
 			dll_add_nth_node(block->miniblock_list,
 							 block->miniblock_list->size, mini);
 			block->size += mini->size;
-
 			node_t *next = (node_t *)curr->next;
 			if (!next) {
 				free(mini);
 				return;
 			}
-
 			block_t *next_block = (block_t *)next->info;
 			uint64_t x3 = next_block->start_address;
 			if (x3 == y2 + 1) {
@@ -100,7 +103,6 @@ void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size)
 				 next_block->miniblock_list->head;
 				next_block->miniblock_list->head->prev =
 				 block->miniblock_list->tail;
-
 				block->miniblock_list->tail = next_block->miniblock_list->tail;
 				block->miniblock_list->size += next_block->miniblock_list->size;
 				block->size += next_block->size;
@@ -124,12 +126,10 @@ void alloc_block(arena_t *arena, const uint64_t address, const uint64_t size)
 		}
 		if (y1 < x2)
 			last_index = index;
-
 		curr = curr->next;
 		index++;
 	}
-
-	miniblock_t *mini = create_miniblock(size, address); // neadiacent
+	miniblock_t *mini = create_miniblock(size, address);
 	block_t *block = create_block(size, address);
 	dll_add_nth_node(block->miniblock_list, 0, mini);
 	dll_add_nth_node(arena->block_list, last_index + 1, block);
@@ -159,8 +159,7 @@ void free_block(arena_t *arena, const uint64_t address)
 		curr2 = dll_remove_nth_node(block->miniblock_list,
 									block->miniblock_list->size - 1);
 		block->size -= miniblock->size;
-		if (miniblock->rw_buffer)
-			free(miniblock->rw_buffer);
+		free(miniblock->rw_buffer);
 		free(miniblock);
 		free(curr2);
 		if (block->miniblock_list->size == 0) {
@@ -177,8 +176,7 @@ void free_block(arena_t *arena, const uint64_t address)
 		block->size -= miniblock->size;
 		block->start_address = miniblock->start_address + miniblock->size;
 		block->miniblock_list->head->prev = NULL;
-		if (miniblock->rw_buffer)
-			free(miniblock->rw_buffer);
+		free(miniblock->rw_buffer);
 		free(miniblock);
 		free(curr2);
 		if (block->miniblock_list->size == 0) {
@@ -213,8 +211,7 @@ void free_block(arena_t *arena, const uint64_t address)
 	dll_add_nth_node(arena->block_list, index + 1, new_block);
 	free(new_block);
 
-	if (miniblock->rw_buffer)
-		free(miniblock->rw_buffer);
+	free(miniblock->rw_buffer);
 	free(miniblock);
 	free(curr2);
 }
@@ -292,7 +289,7 @@ void read(arena_t *arena, uint64_t address, uint64_t size)
 	printf("\n");
 }
 
-// function writes to given address
+// function writes to given address if permissions don't guard
 // rw_buffer is updated by deep copy
 void write(arena_t *arena, const uint64_t address, const uint64_t size,
 		   const int8_t *data)
@@ -324,8 +321,6 @@ void write(arena_t *arena, const uint64_t address, const uint64_t size,
 	size_t copied = 0;
 	size_t aux = minim(miniblock->size - (miniblock->start_address - address),
 					   available);
-	miniblock->rw_buffer = calloc(miniblock->size, sizeof(char));
-	DIE(!miniblock->rw_buffer, "calloc failed()\n");
 	memcpy(miniblock->rw_buffer +
 		  (address - miniblock->start_address), data, aux);
 	copied = aux;
@@ -334,18 +329,10 @@ void write(arena_t *arena, const uint64_t address, const uint64_t size,
 	while (copied < available && curr2) {
 		miniblock_t *miniblock = (miniblock_t *)curr2->info;
 		if (copied + miniblock->size <= available) {
-			signed char *new_info = calloc(miniblock->size,
-										   sizeof(signed char));
-			DIE(!new_info, "calloc failed()\n");
-			memcpy(new_info, data + copied, miniblock->size);
-			miniblock->rw_buffer = new_info;
+			memcpy(miniblock->rw_buffer, data + copied, miniblock->size);
 			copied += miniblock->size;
 		} else {
-			signed char *new_info = calloc(miniblock->size,
-										   sizeof(signed char));
-			DIE(!new_info, "calloc failed()\n");
-			memcpy(new_info, data + copied, available - copied);
-			miniblock->rw_buffer = new_info;
+			memcpy(miniblock->rw_buffer, data + copied, available - copied);
 			copied += available - copied;
 		}
 

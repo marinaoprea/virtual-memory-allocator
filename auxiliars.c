@@ -1,10 +1,11 @@
+// Copyright Marina Oprea 313CA 2022 - 2023
 #include <stdlib.h>
 
 #include "auxiliars.h"
 #include "vma.h"
 #include "dll.h"
 
-// function returns 1 wether [x1, y1] intersects [x2, y2] segment and
+// function returns 1 whether [x1, y1] intersects [x2, y2] segment and
 // 0 otherwise; segments considered on real numbers positive semiaxis
 int intersection(uint64_t x1, uint64_t y1, uint64_t x2, uint64_t y2)
 {
@@ -29,7 +30,7 @@ miniblock_t *create_miniblock(size_t size, size_t address)
 	mini->start_address = address;
 	mini->size = size;
 	mini->perm = 6;
-	mini->rw_buffer = NULL;
+	mini->rw_buffer = calloc(size, sizeof(char));
 
 	return mini;
 }
@@ -61,7 +62,7 @@ size_t count_miniblock_bytes(node_t *curr)
 	return ans;
 }
 
-// function returns 1 wether there is a miniblock that starts at given
+// function returns 1 whether there is a miniblock that starts at given
 // address
 // function updates curr, block, curr2, miniblock to searched structures
 // thus parameters are given by double pointer
@@ -162,7 +163,7 @@ int count_miniblocks(const arena_t *arena)
 	return ans;
 }
 
-// funciton prints permissions for given octal form
+// function prints permissions for given octal form
 void print_permissions(uint8_t perm)
 {
 	(perm & 4) ? printf("R") : printf("-");

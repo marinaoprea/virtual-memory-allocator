@@ -1,3 +1,4 @@
+// Copyright Marina Oprea 313CA 2022 - 2023
 #pragma once
 #include <inttypes.h>
 #include <stddef.h>

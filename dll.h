@@ -1,3 +1,4 @@
+// Copyright Marina Oprea 313CA 2022 - 2023
 #ifndef __DLL__
 #define __DLL__
 

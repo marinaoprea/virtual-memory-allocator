@@ -1,3 +1,4 @@
+// Copyright Marina Oprea 313CA 2022 - 2023
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>

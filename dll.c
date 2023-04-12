@@ -1,3 +1,4 @@
+// Copyright Marina Oprea 313CA 2022 - 2023
 #include <stdlib.h>
 #include <string.h>
 #include "errno.h"
@@ -91,10 +92,18 @@ node_t *dll_remove_nth_node(list_t *list, unsigned int n)
 	}
 	node_t *curr = dll_get_nth_node(list, n);
 
-	if (n == 0)
+	if (n == 0) {
 		list->head = list->head->next;
-	if (n == (unsigned int)(list->size - 1))
+		list->head->prev = NULL;
+		list->size--;
+		return curr;
+	}
+	if (n == (unsigned int)(list->size - 1)) {
 		list->tail = list->tail->prev;
+		list->tail->next = NULL;
+		list->size--;
+		return curr;
+	}
 
 	if (curr->prev)
 		curr->prev->next = curr->next;
